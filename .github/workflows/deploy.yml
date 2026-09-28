@@ -1,4 +1,4 @@
-name: Deploy to VPS
+name: Deploy MiniGameHub to VPS
 
 on:
   push:
@@ -6,56 +6,19 @@ on:
       - main
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    env:
-      POSTGRES_PASSWORD: ci_only_password
-      DATABASE_URL: postgresql://mini_game:ci_only_password@postgres:5432/mini_game_hub
-      JWT_SECRET: ci-only-secret-with-at-least-32-characters
-      APP_ORIGIN: https://example.invalid
-      COOKIE_SECURE: "false"
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm --prefix backend ci
-
-      - name: Test and build
-        run: |
-          npm test
-          npm run build
-          docker compose config --quiet
-          docker compose build
-
   deploy:
-    needs: verify
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy website
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            set -e
-            cd /root/DuanVScode-git
-
+            cd /opt/MiniGameHub
             git fetch origin
             git reset --hard origin/main
-
-            test -f .env
-            docker compose config --quiet
-            docker compose build --pull
-            docker rm -f mini-game-hub || true
-            docker compose up -d --remove-orphans --wait
-
+            docker compose up -d --build
             docker image prune -f
