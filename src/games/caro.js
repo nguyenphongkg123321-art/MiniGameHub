@@ -1,7 +1,7 @@
 import { addPlayTime, getData, recordResult } from '../utils/storage.js';
 import { sound } from '../utils/sound.js';
 
-const BOARD_SIZE = 15;
+const BOARD_SIZE = 19;
 const WIN_LENGTH = 5;
 
 export function checkCaroWin(board, row, col, player) {
