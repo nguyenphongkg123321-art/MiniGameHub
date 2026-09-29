@@ -272,7 +272,7 @@ footer { padding: 34px clamp(18px, 5vw, 78px); display: flex; align-items: cente
 .versus-score > div { display: flex; flex-direction: column; align-items: center; gap: 4px; }.versus-score > b { font-size: 8px; color: var(--muted); }.versus-score small { font-size: 7px; color: var(--muted); }.versus-score strong { font-size: 17px; }
 .player-symbol { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(255,67,135,.3); color: var(--pink); font: 800 23px monospace; margin-bottom: 5px; }.player-symbol.o { color: var(--cyan); border-color: rgba(55,240,208,.3); }
 .game-rules { margin: 23px 0; }.game-rules strong { font-size: 8px; letter-spacing: .14em; }.game-rules p { color: var(--muted); font-size: 10px; line-height: 1.65; }.game-sidebar .secondary-button { width: 100%; }
-.caro-board { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(15, 1fr); background: rgba(4,8,18,.75); border: 1px solid var(--line); }
+.caro-board { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(19, 1fr); background: rgba(4,8,18,.75); border: 1px solid var(--line); }
 .caro-board.ai-thinking { cursor: wait; }
 .caro-board.ai-thinking .caro-cell:empty { pointer-events: none; }
 .caro-cell { aspect-ratio: 1; min-width: 0; padding: 0; border: 0; border-right: 1px solid rgba(255,255,255,.07); border-bottom: 1px solid rgba(255,255,255,.07); background: transparent; font: 800 clamp(10px, 2.1vw, 22px) monospace; transition: background .14s; }
