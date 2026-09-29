@@ -7,17 +7,30 @@ const WIN_LENGTH = 5;
 export function checkCaroWin(board, row, col, player) {
   const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
   for (const [rowStep, colStep] of directions) {
-    const cells = [[row, col]];
-    for (const sign of [-1, 1]) {
-      let nextRow = row + rowStep * sign;
-      let nextCol = col + colStep * sign;
-      while (board[nextRow]?.[nextCol] === player) {
-        cells.push([nextRow, nextCol]);
-        nextRow += rowStep * sign;
-        nextCol += colStep * sign;
-      }
+    let firstRow = row;
+    let firstCol = col;
+    while (board[firstRow - rowStep]?.[firstCol - colStep] === player) {
+      firstRow -= rowStep;
+      firstCol -= colStep;
     }
-    if (cells.length >= WIN_LENGTH) return cells;
+
+    const cells = [];
+    let nextRow = firstRow;
+    let nextCol = firstCol;
+    while (board[nextRow]?.[nextCol] === player) {
+      cells.push([nextRow, nextCol]);
+      nextRow += rowStep;
+      nextCol += colStep;
+    }
+
+    if (cells.length >= WIN_LENGTH) {
+      const moveIndex = cells.findIndex(([cellRow, cellCol]) => cellRow === row && cellCol === col);
+      const earliestStart = Math.max(0, moveIndex - WIN_LENGTH + 1);
+      const latestStart = Math.min(moveIndex, cells.length - WIN_LENGTH);
+      const preferredStart = moveIndex - Math.floor(WIN_LENGTH / 2);
+      const segmentStart = Math.max(earliestStart, Math.min(preferredStart, latestStart));
+      return cells.slice(segmentStart, segmentStart + WIN_LENGTH);
+    }
   }
   return null;
 }
@@ -33,6 +46,7 @@ export function createCaroGame({ onBack }) {
   let aiDifficulty = 'medium';
   let aiThinking = false;
   let aiTimer = null;
+  let resultTimer = null;
 
   const root = document.createElement('section');
   root.className = 'game-shell caro-game enter';
@@ -66,7 +80,7 @@ export function createCaroGame({ onBack }) {
         <button class="secondary-button restart-button">↻ TRẬN MỚI</button>
       </aside>
       <div class="board-wrap glass">
-        <div class="caro-board" role="grid" aria-label="Bàn cờ Caro 15 x 15"></div>
+        <div class="caro-board" role="grid" aria-label="Bàn cờ Caro 19 x 19"></div>
         <div class="game-message" aria-live="polite"></div>
       </div>
     </div>`;
@@ -83,7 +97,9 @@ export function createCaroGame({ onBack }) {
 
   function reset() {
     clearTimeout(aiTimer);
+    clearTimeout(resultTimer);
     aiTimer = null;
+    resultTimer = null;
     board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(''));
     currentPlayer = 'X';
     lastCell = null;
@@ -114,16 +130,46 @@ export function createCaroGame({ onBack }) {
     boardElement.classList.toggle('ai-thinking', isCpuTurn);
   }
 
+  function drawWinningLine(winningCells) {
+    boardElement.querySelector('.caro-win-line')?.remove();
+    if (winningCells.length !== WIN_LENGTH) return;
+
+    const [startRow, startCol] = winningCells[0];
+    const [endRow, endCol] = winningCells[WIN_LENGTH - 1];
+    const startCell = boardElement.children[startRow * BOARD_SIZE + startCol];
+    const endCell = boardElement.children[endRow * BOARD_SIZE + endCol];
+    if (!startCell || !endCell) return;
+
+    const startX = startCell.offsetLeft + startCell.offsetWidth / 2;
+    const startY = startCell.offsetTop + startCell.offsetHeight / 2;
+    const endX = endCell.offsetLeft + endCell.offsetWidth / 2;
+    const endY = endCell.offsetTop + endCell.offsetHeight / 2;
+    const line = document.createElement('div');
+    line.className = 'caro-win-line';
+    line.setAttribute('aria-hidden', 'true');
+    line.style.left = `${startX}px`;
+    line.style.top = `${startY}px`;
+    line.style.width = `${Math.hypot(endX - startX, endY - startY)}px`;
+    line.style.setProperty('--win-line-angle', `${Math.atan2(endY - startY, endX - startX)}rad`);
+    boardElement.append(line);
+  }
+
   function finish(winner, winningCells = []) {
     clearTimeout(aiTimer);
+    clearTimeout(resultTimer);
     gameEnded = true;
     const score = winner === 'X' ? getData().scores.caroX + 1 : getData().scores.caroO + 1;
     recordResult('CARO', score, { winner });
     winningCells.forEach(([row, col]) => boardElement.children[row * BOARD_SIZE + col].classList.add('winner'));
-    message.className = 'game-message visible win-message';
+    drawWinningLine(winningCells);
     const winnerName = gameMode === 'cpu' ? (winner === 'X' ? 'BẠN CHIẾN THẮNG!' : 'MÁY CHIẾN THẮNG!') : `NGƯỜI CHƠI ${winner} THẮNG!`;
-    message.innerHTML = `<small>TRẬN ĐẤU KẾT THÚC</small><strong>${winnerName}</strong><button>CHƠI LẠI</button>`;
-    message.querySelector('button').addEventListener('click', reset, { once: true });
+    resultTimer = setTimeout(() => {
+      resultTimer = null;
+      boardElement.querySelector('.caro-win-line')?.remove();
+      message.className = 'game-message visible win-message';
+      message.innerHTML = `<small>TRẬN ĐẤU KẾT THÚC</small><strong>${winnerName}</strong><button>CHƠI LẠI</button>`;
+      message.querySelector('button').addEventListener('click', reset, { once: true });
+    }, 2000);
     updateWins();
     sound.win();
   }
@@ -285,6 +331,7 @@ export function createCaroGame({ onBack }) {
     element: root,
     destroy() {
       clearTimeout(aiTimer);
+      clearTimeout(resultTimer);
       boardElement.removeEventListener('click', handleMove);
       addPlayTime((Date.now() - startedAt) / 1000);
     },

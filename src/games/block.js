@@ -3,17 +3,44 @@ import { sound } from '../utils/sound.js';
 
 const SIZE = 8;
 const SHAPES = [
-  { name: 'MỘT Ô', cells: [[0, 0]] },
-  { name: 'NGANG 2 Ô', cells: [[0, 0], [0, 1]] },
-  { name: 'DỌC 2 Ô', cells: [[0, 0], [1, 0]] },
-  { name: 'NGANG 3 Ô', cells: [[0, 0], [0, 1], [0, 2]] },
-  { name: 'DỌC 3 Ô', cells: [[0, 0], [1, 0], [2, 0]] },
-  { name: 'HÌNH VUÔNG', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-  { name: 'HÌNH CHỮ L', cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
-  { name: 'HÌNH CHỮ L', cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
-  { name: 'HÌNH CHỮ T', cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
+  { name: 'MỘT Ô', weight: 2.2, cells: [[0, 0]] },
+  { name: 'NGANG 2 Ô', weight: 1.6, cells: [[0, 0], [0, 1]] },
+  { name: 'DỌC 2 Ô', weight: 1.6, cells: [[0, 0], [1, 0]] },
+  { name: 'NGANG 3 Ô', weight: 1.35, cells: [[0, 0], [0, 1], [0, 2]] },
+  { name: 'DỌC 3 Ô', weight: 1.35, cells: [[0, 0], [1, 0], [2, 0]] },
+  { name: 'NGANG 4 Ô', weight: 0.9, cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+  { name: 'NGANG 5 Ô', weight: 0.55, cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]] },
+  { name: 'HÌNH VUÔNG', weight: 1, cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  { name: 'KHỐI 2 × 3', weight: 0.5, cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]] },
+  { name: 'KHỐI 3 × 3', weight: 0.15, cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] },
+  { name: 'HÌNH CHỮ L', weight: 0.85, cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+  { name: 'HÌNH CHỮ L NGƯỢC', weight: 0.85, cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+  { name: 'HÌNH CHỮ L', weight: 0.85, cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+  { name: 'TIA SÉT', weight: 1.1, cells: [[0, 1], [0, 2], [1, 0], [1, 1]] },
+  { name: 'HÌNH CHỮ T', weight: 0.9, cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
 ];
 const COLORS = ['cyan', 'pink', 'lime', 'purple', 'orange'];
+const ROTATIONS = [0, 90, 180, 270];
+
+export function rotateBlockCells(cells, rotation) {
+  let rotated = cells.map(([row, col]) => [row, col]);
+  const turns = Math.round(rotation / 90) % 4;
+  for (let turn = 0; turn < turns; turn += 1) {
+    const maxRow = Math.max(...rotated.map(([row]) => row));
+    rotated = rotated.map(([row, col]) => [col, maxRow - row]);
+  }
+  return rotated.sort(([rowA, colA], [rowB, colB]) => rowA - rowB || colA - colB);
+}
+
+function randomShape() {
+  const totalWeight = SHAPES.reduce((total, shape) => total + (shape.weight ?? 1), 0);
+  let randomWeight = Math.random() * totalWeight;
+  for (const shape of SHAPES) {
+    randomWeight -= shape.weight ?? 1;
+    if (randomWeight < 0) return shape;
+  }
+  return SHAPES[SHAPES.length - 1];
+}
 
 export function createBlockGame({ onBack }) {
   const startedAt = Date.now();
@@ -65,8 +92,14 @@ export function createBlockGame({ onBack }) {
   const shatterLayer = root.querySelector('.block-shatter-layer');
 
   function createRandomPiece() {
-    const source = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-    return { ...source, cells: source.cells.map((cell) => [...cell]), color: COLORS[Math.floor(Math.random() * COLORS.length)] };
+    const source = randomShape();
+    const rotation = ROTATIONS[Math.floor(Math.random() * ROTATIONS.length)];
+    return {
+      ...source,
+      rotation,
+      cells: rotateBlockCells(source.cells, rotation),
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    };
   }
 
   function renderBoard() {
